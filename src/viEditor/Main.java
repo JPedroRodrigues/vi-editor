@@ -220,15 +220,18 @@ public class Main {
                         continue;
                     }
 
+                    // search option: command length equals 2
                     if (command.length == 2) {
                        element = command[1];
                        System.out.printf("Searching for \"%s\" element...\n", element);
 
+                       // feedback
                         if (list.searchElement(element)) {
                             System.out.printf("\n\"%s\" found with success.\n", element);
                         } else {
                             System.out.printf("\nThere's no \"%s\" element in the code.\n", element);
                         }
+                    // replacement option: command length equals 3
                     } else if (command.length == 3) {
                         element = command[1];
                         replacement = command[2];
@@ -237,6 +240,7 @@ public class Main {
                                 "Searching for \"%s\" element and replacing it with \"%s\"...\n", element, replacement
                         );
 
+                        // feedback
                         if (list.replaceElement(element, replacement)) {
                             System.out.println("\nAll lines updated with success.\n");
                         } else {
