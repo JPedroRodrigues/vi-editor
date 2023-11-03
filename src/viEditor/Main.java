@@ -160,7 +160,7 @@ public class Main {
                     Node head = list.getHead();
 
                     if ((command[0].length() == 3) && (command[0].charAt(2) == 'G')) {
-                        while (list.searchLine(currLine).getNext() != head) {
+                        while (currLine <= list.len()) {
                             System.out.println("Line deleted: " + list.searchLine(currLine));
                             list.removeLine(currLine);
                         }
