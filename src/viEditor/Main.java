@@ -1,347 +1,741 @@
+/****************************************************************************************************
+- Authors:
+    João Pedro Rodrigues Vieira         32281730
+    Sabrina Midori F. T. de Carvalho    42249511
+- Creation Date:
+    03.11.2023
+- Project Description:
+    A simple text editor similar to Linux VI.
+ ****************************************************************************************************/
+
 package viEditor;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Scanner;
 
 public class Main {
 
     public static void main(String[] args) {
 
-        Scanner scanner = new Scanner(System.in);
-        List list = new List();
-        String cmd;
+        // Variables that must be initialized outside of do-while loop
+        List list = null, copy = null;
+        String[] op;
+        boolean exit = false, selectedText = false;
+        int first = 0, last = 0;
 
         showHeader();
+
+        // Do-while option isn't to end program
         do {
-            System.out.println("==========================================================================");
-            System.out.print("Choose an option: ");
+            Scanner scanner = new Scanner(System.in);
 
-            cmd = scanner.nextLine();
+            // Read operation to be performed
+            System.out.print("\nCommand: ");
+            op = scanner.nextLine().trim().split(" ");
+            System.out.println();
 
-            switch(cmd.charAt(1)) {
-                // Open file, read its content and store each line in a node of the list
-                case 'e' -> {
-                    if (readFile(list, "src-code-c.txt"))
-                        System.out.println("File was successfully read and data stored in the list.");
-                    else
-                        System.out.println("Error while reading file or storing data in the list.");
-                }
-                // Store the content of the list in a file
-                case 'w' -> {
-                    if (writeFile(list, "src-code-c.txt"))
-                        System.out.println("Data from the list was successfully stored in the file.");
-                    else
-                        System.out.println("Error while storing data from the list in the file.");
-                }
-                // Quit program
-                case 'q' -> {
-                    System.out.println("Exit without saving?");
-                    System.out.print("Your option [Y/N]: ");
-                    String ans = scanner.nextLine().toUpperCase();
+            // Switch statement
+            switch (op[0]) {
 
-                    if (ans.charAt(0) == 'Y') {
-                        quit();
-                        return;
+            /*==========================================================================================================
+            Open file, read its content and store each line in a list
+            ==========================================================================================================*/
+                case ":e" -> {
+
+                    // Check if input is valid
+                    if (op.length != 2) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
                     }
+
+                    // Create list to store file content
+                    list = new List();
+
+                    // Filepath
+                    String filePath = op[1];
+
+                    // Check if filepath exists and is a file
+                    File file = new File(filePath);
+                    boolean exists = file.exists() && file.isFile();
+
+                    // If filepath exists
+                    if (exists) {
+                        // Check if file could be open and read and add its content to the list
+                        if (readFile(list, filePath)) {
+                            System.out.print("File's content successfully added to the list.\nType 'Y' to see the stored content or 'N' to go back to menu: ");
+                            String ans;
+
+                            // Do-while answer is invalid
+                            do {
+                                ans = scanner.nextLine().trim().toUpperCase();
+
+                                // If answer is "Y", call function to show list's content
+                                if (ans.equals("Y")) list.print(1, list.getCount());
+                                else if (!ans.equals("N")) System.out.print("Invalid option. Type 'Y' to see the stored content or 'N' to go back to menu: ");
+
+                            } while (!ans.equals("Y") && !ans.equals("N"));
+                        }
+                    // If filepath does not exist
+                    } else System.out.println("File does not exist.");
                 }
-                // Select text from line x to line y and print it
-                case 'v' -> {
 
-                    String[] substrings = cmd.split(" ");
+            /*==========================================================================================================
+            Write list's content to a file
+            ==========================================================================================================*/
+                case ":w" -> {
 
-                    if (substrings.length >= 3 && ":v".equals(substrings[0])) {
+                    // Check if input is valid
+                    if (op.length != 2) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // Check if file was read and list is not null
+                    if (list == null || list.isEmpty()) {
+                        System.out.println("List is empty. Type :e <fileName.ext> to read the file and fill the list.");
+                        continue;
+                    }
+
+                    // Filepath
+                    String filePath = op[1];
+
+                    // Write in file
+                    if (writeFile(list, filePath)) System.out.println("List's content successfully added to the file " + filePath);
+                    else System.out.println("Error while storing list's content in the file " + filePath);
+                }
+
+            /*==========================================================================================================
+            Select and print a piece of the list, from first to last line
+            ==========================================================================================================*/
+                case ":v" -> {
+
+                    // Check if input is valid
+                    if (op.length != 3) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // Check if file was read and list is not null
+                    if (list == null || list.isEmpty()) {
+                        System.out.println("List is empty. Type :e <fileName.ext> to read the file and fill the list.");
+                        continue;
+                    }
+
+                    // Try-catch block to check if input is valid
+                    try {
+                        // Values of first and last line
+                        int x = Integer.parseInt(op[1]);    // first line
+                        int y = Integer.parseInt(op[2]);    // last line
+
+                        // If first line and last line are within the bounds of the list
+                        if (verifyBounds(list, x, y)) {
+                            System.out.println("The provided limit is valid.");
+                            selectedText = true;
+
+                            first = x;
+                            last = y;
+
+                            // If they are, call method to select and print given interval of the list
+                            list.print(first, last);
+
+                        // If first line and last line are not within the bounds of the list
+                        } else System.out.printf("The provided limit is not valid. Values must be between 1-%d.\n", list.getCount());
+
+                    } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
+                }
+
+            /*==========================================================================================================
+            Copy selected text to a copy list
+            ==========================================================================================================*/
+                case ":y" -> {
+
+                    // Check if input is valid
+                    if (op.length != 1) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // If the interval was previously selected
+                    if (selectedText) {
+                        copy = new List();
+
+                        // Call function to copy selected content to new list
+                        if (copySelectedText(list, copy, first, last)) {
+                            // If content is successfully copied, print a message
+                            System.out.println("Text successfully copied to new list.");
+
+                            // test - comment out after
+                            // copy.print(1, copy.getCount());
+
+                        // If content could not be copied, print a message
+                        } else System.out.println("Error while copying selected text to new list.");
+
+                    // If the interval was not previously selected
+                    } else System.out.println("No text selected. To select an interval, type :v <startLine> <endLine>.");
+                }
+
+            /*==========================================================================================================
+            Cut (remove) selected text
+            ==========================================================================================================*/
+                case ":c" -> {
+
+                    // Check if input is valid
+                    if (op.length != 1) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // If the interval was previously selected
+                    if (selectedText) {
+                        // Call function to remove selected content of the list
+                        if (list.removeLines(first, last)) {
+                            // If content is successfully removed from the original list, print a message
+                            System.out.println("Text successfully cut.");
+
+                        // If content could not be removed, print a message
+                        } else System.out.println("Error while cutting selected text from list.");
+
+                    // If the interval was not previously selected
+                    } else System.out.println("No text selected. To select an interval, type :v <startLine> <endLine>.");
+                }
+
+            /*==========================================================================================================
+            Paste text starting at given line
+            ==========================================================================================================*/
+                case ":p" -> {
+
+                    // Check if input is valid
+                    if (op.length != 2) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // If copy list is not empty
+                    if (copy != null) {
+                        // Try-catch block to check if input is valid
                         try {
-                            int x = Integer.parseInt(substrings[1]);
-                            int y = Integer.parseInt(substrings[2]);
+                            // Value of start line
+                            int start = Integer.parseInt(op[1]);
 
-                            printSelectedText(list, x, y);
+                            if (list.paste(copy, start)) System.out.println("The selected text was successfully pasted to the list.");
+                            else System.out.println("Could not paste the selected text to the list.");
 
-                        } catch (NumberFormatException e) { System.out.println("Invalid input."); }
-                    } else System.out.println("Invalid input.");
+                        } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
 
+                    // If copy list is empty
+                    } else System.out.println("No text was copied. To copy previously selected text, type :y.");
                 }
 
-                case 'y' -> {
+            /*==========================================================================================================
+            Display source code (entire or from first line to last line), every 10 lines
+            ==========================================================================================================*/
+                case ":s" -> {
 
-                }
-
-                case 'c' -> {
-
-                }
-
-                case 'p' -> {
-
-                }
-
-                case 's' -> {
-                    if (list.isEmpty()) {
-                        System.out.println("Please, read the file to run this option.");
+                    // Check if input is valid
+                    if (op.length != 1 && op.length != 3) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
                         continue;
                     }
 
-                    String[] command = cmd.split(" ");
-
-                    int startLine = 1;
-                    int endLine = list.len();
-
-                    if (command.length == 3) {
-                        startLine = Integer.parseInt(command[1]);
-                        endLine = Integer.parseInt(command[2]);
-                    } else if (command.length == 2) {
-                        System.out.println("This command should have more than one number");
+                    // Check if file was read and list is not null
+                    if (list == null || list.isEmpty()) {
+                        System.out.println("List is empty. Type :e <fileName.ext> to read the file and fill the list.");
                         continue;
                     }
 
-                    if (startLine > endLine) {
-                        System.out.println("The first line can not be greater than last line.");
-                        continue;
-                    } else if (startLine > list.len() || endLine > list.len()) {
-                        System.out.println("Both first line and last line can not be greater than list size itself.");
-                        continue;
-                    }
+                    // Command :s
+                    int startLine = 1, endLine = list.getCount();
 
-                    System.out.println("Printing code...");
+                    // Command :s <startLine> <endLine>
+                    if (op.length == 3)
+                        // Try-catch block to check if input is valid
+                        try {
+                            startLine = Integer.parseInt(op[1]);        // first line
+                            endLine = Integer.parseInt(op[2]);          // last line
 
+                            // If first line and last line are within the bounds of the list
+                            if (verifyBounds(list, startLine, endLine)) System.out.println("The provided limit is valid.");
+                            // If first line and last line are not within the bounds of the list
+                            else {
+                                System.out.printf("The provided limit is not valid. Values must be between 1-%d.\n", list.getCount());
+                                continue;
+                            }
+                        } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
+
+                    System.out.println("Printing code...\n");
+
+                    // While loop
                     while (true) {
-                        list.print(startLine, endLine);
+                        // Print list content from first line to last line
+                        list.printEvery10Lines(startLine, endLine);
 
+                        // Increment first line in 10 and check if its greater than last line
                         startLine += 10;
                         if (startLine > endLine) break;
 
-                        System.out.printf("There is %d lines left. Do you want to continue?\n", endLine - startLine + 1);
-                        System.out.print("Your choice [Y/N]: ");
-                        String ans = scanner.nextLine().toUpperCase();
+                        String ans;
 
-                        while (!Objects.equals(ans, "Y") && !Objects.equals(ans, "N")) {
-                            System.out.println(
-                                    "\nInvalid option. Please, choose one between \"Y\" (Yes) and \"N\" (No)."
-                            );
-                            System.out.printf(
-                                    "There is still %d lines left. Do you want to continue? ",
-                                    endLine - startLine + 1
-                            );
-                            ans = scanner.nextLine().toUpperCase();
-                        }
+                        // Do-while answer is invalid
+                        do {
+                            System.out.printf("\nThere are %d lines left. Do you want to continue?\n", endLine - startLine + 1);
+                            System.out.print("Your choice [Y/N]: ");
+                            ans = scanner.nextLine().trim().toUpperCase();
+                            System.out.println();
 
-                        if (Objects.equals(ans, "N")) break;
+                            if (!ans.equals("Y") && !ans.equals("N")) System.out.print("Invalid option. Type 'Y' to continue or 'N' to go back to menu.\n");
+                        } while (!ans.equals("Y") && !ans.equals("N"));
+
+                        // Break out of while loop
+                        if (ans.equals("N")) break;
                     }
                 }
 
-                case 'x' -> {
-                    if (list.isEmpty()) {
-                        System.out.println("Please, read the file to run this option.");
+            /*==========================================================================================================
+            Remove given line
+            ==========================================================================================================*/
+                case ":x" -> {
+
+                    // Check if input is valid
+                    if (op.length != 2) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
                         continue;
                     }
 
-                    // Placing all the command elements into an array
-                    String[] command = cmd.split(" ");
-
-                    // Commands with a number of elements different from 2 will not be accepted
-                    if (command.length != 2) {
-                        System.out.println("Invalid option. Please, check out :help to see how to write it correctly.");
+                    // Check if file was read and list is not null
+                    if (list == null || list.isEmpty()) {
+                        System.out.println("List is empty. Type :e <fileName.ext> to read the file and fill the list.");
                         continue;
                     }
 
-                    // Getting the line from where the code will be swept
-                    int currLine = Integer.parseInt(command[1]);
+                    int line = 0;
 
-                    if (currLine > list.len() || currLine <= 0) {
-                        System.out.println("Invalid line number. The number must not exceed the code's size and be greater than zero.");
-                        continue;
-                    }
+                    // Try-catch block to check if input is valid
+                    try {
+                        line = Integer.parseInt(op[1]);        // line to be removed
 
-                    // Iterating through the list until the head is reached
-                    Node head = list.getHead();
-
-                    if ((command[0].length() == 3) && (command[0].charAt(2) == 'G')) {
-                        while (currLine <= list.len()) {
-                            System.out.println("Line deleted: " + list.searchLine(currLine));
-                            list.removeLine(currLine);
+                        // Check if line to be removed is valid
+                        if (line < 1 || line > list.getCount()) {
+                            System.out.printf("The provided limit is not valid. Values must be between 1-%d.\n", list.getCount());
+                            continue;
                         }
-                    } else if ((command[0].length() == 2)) {
-                        list.removeLine(currLine);
+                    } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
+
+                    // Remove only given line
+                    if (list.removeLine(line)) System.out.println("Removal done successfully.");
+                    else System.out.println("Error while removing from list.");
+                }
+
+            /*==========================================================================================================
+            Remove from given line until the end of the list
+            ==========================================================================================================*/
+                case ":xG" -> {
+
+                    // Check if input is valid
+                    if (op.length != 2) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // Check if file was read and list is not null
+                    if (list == null || list.isEmpty()) {
+                        System.out.println("List is empty. Type :e <fileName.ext> to read the file and fill the list.");
+                        continue;
+                    }
+
+                    int line = 0;
+
+                    // Try-catch block to check if input is valid
+                    try {
+                        line = Integer.parseInt(op[1]);        // first line to be removed
+
+                        // Check if first line to be removed is valid
+                        if (line < 1 || line > list.getCount()) {
+                            System.out.printf("The provided limit is not valid. Values must be between 1-%d.\n", list.getCount());
+                            continue;
+                        }
+                    } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
+
+                    // Remove from given line until the end of the list
+                    if (list.removeLines(line, list.getCount() + 1)) System.out.println("Removal done successfully.");
+                    else System.out.println("Error while removing from the list.");
+                }
+
+            /*==========================================================================================================
+            Remove from beginning of the list until given line
+            ==========================================================================================================*/
+                case ":XG" -> {
+
+                    // Check if input is valid
+                    if (op.length != 2) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // Check if file was read and list is not null
+                    if (list == null || list.isEmpty()) {
+                        System.out.println("List is empty. Type :e <fileName.ext> to read the file and fill the list.");
+                        continue;
+                    }
+
+                    int line = 0;
+
+                    // Try-catch block to check if input is valid
+                    try {
+                        line = Integer.parseInt(op[1]);        // last line to be removed
+
+                        // Check if last line to be removed is valid
+                        if (line < 1 || line > list.getCount()) {
+                            System.out.printf("The provided limit is not valid. Values must be between 1-%d.\n", list.getCount());
+                            continue;
+                        }
+                    } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
+
+                    // Remove from beginning of the list until given line
+                    if (list.removeLines(0, line)) System.out.println("Removal done successfully.");
+                    else System.out.println("Error while removing from the list.");
+                }
+
+            /*==========================================================================================================
+            Display the lines that contain given element or swap first element for second element
+            ==========================================================================================================*/
+                case ":/" -> {
+
+                    // Check if input is valid
+                    if (op.length != 2 && op.length != 3) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // Check if file was read and list is not null
+                    if (list == null || list.isEmpty()) {
+                        System.out.println("List is empty. Type :e <fileName.ext> to read the file and fill the list.");
+                        continue;
+                    }
+
+                    String element, replacement;
+
+                    // Command :/ <element>
+                    if (op.length == 2) {
+                        element = op[1];
+                        System.out.printf("Searching for \"%s\" element...\n\n", element);
+
+                        // Feedback
+                        if (list.searchElement(element)) System.out.printf("\nElement \"%s\" was successfully found.\n", element);
+                        else System.out.printf("\n\"%s\" not found.\n", element);
+
+                    // Command :/ <element> <replacement>
                     } else {
-                        System.out.println("Invalid option. Please, enter :help to check out all commands.");
-                    }
+                        element = op[1];
+                        replacement = op[2];
 
-                    System.out.println("Removal done successfully.");
+                        System.out.printf("Searching for \"%s\" element and replacing it with \"%s\"...\n", element, replacement);
+
+                        // Feedback
+                        if (list.replaceElement(element, replacement)) System.out.println("\nAll lines successfully updated.\n");
+                        else System.out.printf("\nElement \"%s\" not found.\n", element);
+                    }
                 }
 
-                case 'X' -> {
-                    if (list.isEmpty()) {
-                        System.out.println("Please, read the file to run this option.");
+            /*==========================================================================================================
+            Add one or more lines and insert them after given line
+            ==========================================================================================================*/
+                case ":a" -> {
+
+                    // Check if input is valid
+                    if (op.length != 2) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
                         continue;
                     }
 
-                    // Placing all the command elements into an array
-                    String[] command = cmd.split(" ");
+                    // If list was not created yet
+                    if (list == null) list = new List();
 
-                    // Commands with a number of elements different from 2 will not be accepted
-                    if (command.length != 2) {
-                        System.out.println("Invalid option. Please, check out :help to see how to write it correctly.");
-                        continue;
-                    }
+                    // Try-catch block to check if input is valid
+                    try {
+                        // Value of position to insert new lines
+                        int pos = Integer.parseInt(op[1]);
 
-                    // Getting the line from where the code will be swept
-                    int currLine = Integer.parseInt(command[1]);
-
-                    if (currLine > list.len() || currLine <= 0) {
-                        System.out.println("Invalid line number. The number must not exceed the code's size and be greater than zero.");
-                        continue;
-                    }
-
-                    // Going through the list from the given number to the first line
-                    if (command[0].length() == 3 && command[0].charAt(2) == 'G') {
-                        while (currLine >= 1) {
-                            System.out.println("Line deleted: " + list.searchLine(currLine));
-                            list.removeLine(currLine);
-                            --currLine;
-                        }
-                    } else {
-                        System.out.println("Invalid option. Please, enter :help to check out all commands.");
-                    }
-
-                    System.out.println("Removal done successfully.");
-                }
-
-                case '/' -> {
-                    String[] command = cmd.split(" ");
-                    String element;
-                    String replacement;
-
-                    if (list.isEmpty()) {
-                        System.out.println("Please, read the file to run this option.");
-                        continue;
-                    }
-
-                    // search option: command length equals 2
-                    if (command.length == 2) {
-                       element = command[1];
-                       System.out.printf("Searching for \"%s\" element...\n", element);
-
-                       // feedback
-                        if (list.searchElement(element)) {
-                            System.out.printf("\n\"%s\" found with success.\n", element);
-                        } else {
-                            System.out.printf("\nThere's no \"%s\" element in the code.\n", element);
-                        }
-                    // replacement option: command length equals 3
-                    } else if (command.length == 3) {
-                        element = command[1];
-                        replacement = command[2];
-
-                        System.out.printf(
-                                "Searching for \"%s\" element and replacing it with \"%s\"...\n", element, replacement
-                        );
-
-                        // feedback
-                        if (list.replaceElement(element, replacement)) {
-                            System.out.println("\nAll lines updated with success.\n");
-                        } else {
-                            System.out.printf("\nThere's no \"%s\" element in the code.\n", element);
+                        if (pos < 0 || pos > list.getCount()) {
+                            System.out.printf("Invalid position. Value must be between 0-%d.\n", list.getCount());
+                            continue;
                         }
 
-                    } else {
-                        System.out.println(
-                                "Invalid option. Please, check out :help to see all the supported commands"
-                        );
+                        String data;    // Data to be inserted
+                        int i = 0;      // Counter
+
+                        // Do-while input is not :a
+                        do {
+                            System.out.print("Enter new data [Type :a to stop]: ");
+                            data = scanner.nextLine();
+
+                            // If option is to stop adding, continue
+                            if (data.equals(":a")) continue;
+
+                            // If list is empty, append data and increase counter
+                            else if (list.isEmpty()) {
+                                list.append(data);
+                                System.out.println("New data successfully added to the list.\n");
+                                ++i;
+
+                            // If list is not empty
+                            } else if (list.addLineAfter(data, pos + i)) {
+                                System.out.println("New data successfully added to the list.\n");
+                                ++i;
+                            } else {
+                                System.out.println("Could not add new data to the list.");
+                                break;
+                            }
+                        } while (!data.equals(":a"));
+
+                    } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
+                }
+
+            /*==========================================================================================================
+            Insert line before given position
+            ==========================================================================================================*/
+                case ":i" -> {
+
+                    // Check if input is valid
+                    if (op.length < 3) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+
+                    // If list was not created yet
+                    if (list == null) list = new List();
+
+                    // Try-catch block to check if input is valid
+                    try {
+                        // Value of position to insert new line
+                        int pos = Integer.parseInt(op[1]);
+
+                        if (pos < 1 || pos > list.getCount() + 1) {
+                            System.out.printf("Invalid position. Value must be between 1-%d.\n", list.getCount() + 1);
+                            continue;
+                        }
+
+                        // Get whole text
+                        String data = String.join(" ", Arrays.copyOfRange(op, 2, op.length));
+
+                        // If list is empty, append data
+                        if (list.isEmpty()) {
+                            list.append(data);
+                            System.out.println("New data successfully added to the list.");
+                        }
+                        else if (list.addLineBefore(data, pos)) System.out.println("New data successfully added to the list.");
+                        else System.out.println("Could not add new data to the list.");
+
+                    } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
+                }
+
+            /*==========================================================================================================
+            Show all available commands
+            ==========================================================================================================*/
+                case ":help" -> {
+
+                    // Check if input is valid
+                    if (op.length != 1) {
+                        System.out.println("Invalid input. Type :help to se all available commands.");
+                        continue;
+                    }
+                    showCommands();
+                }
+
+            /*==========================================================================================================
+            End program
+            ==========================================================================================================*/
+                case ":q!" -> {
+                    if (op.length != 1) System.out.println("Invalid input. Type :help to se all available commands.");
+                    else if (quit()) {
+                        scanner.close();
+                        exit = true;
                     }
                 }
 
-                case 'a' -> {
-
-                }
-
-                case 'i' -> {
-
-                }
-
-                case 'h' -> {
-
-                }
+            /*==========================================================================================================
+            Invalid input
+            ==========================================================================================================*/
+                default -> System.out.println("Invalid input. Type :help to se all available commands.");
             }
-        }
-        while (!Objects.equals(cmd, ":q!"));
-
-        // Close scanner
-        scanner.close();
-
+        } while (!exit);
     }
 
-    public static boolean readFile(List list, String fileName) {
-        try (BufferedReader fileScan = new BufferedReader(new FileReader(fileName))) {
-            String line;
+    public static boolean readFile(List list, String filePath) {
 
-            // While file is not over, store each line in a node at the end of the list
-            while ((line = fileScan.readLine()) != null) list.append(line);
-            return true;
+        int lineNumber = 1;
 
-            // If there's an error while reading the file or storing data
+        try {
+            FileReader fileReader = new FileReader(filePath);
+            Scanner scanner = new Scanner(fileReader);
+
+            // Read file line by line and store its content in the list
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+
+                // Inform if line could not be added
+                if (!list.append(line)) System.out.println("Could not add line " + lineNumber + " to the list.");
+
+                // test - comment out after
+                // if (list.append(line)) System.out.println("Line " + lineNumber + " successfully added to list.");
+                // else System.out.println("Could not add line " + lineNumber + " to the list.");
+
+                ++lineNumber;
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println(e.getMessage());
+        }
+
+        return true;
+    }
+
+    public static boolean writeFile(List list, String filePath) {
+
+        // Try-catch to open file and write list's content on it
+        try (FileWriter fileWriter = new FileWriter(filePath);
+             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+
+            // Start at head
+            Node current = list.getHead();
+            int i = 0;
+
+            // Traverse the list writing its content to the file
+            while (i < list.getCount()) {
+                // Write each node's content in the file
+                bufferedWriter.write(current.getData());
+                // Write newline character
+                bufferedWriter.newLine();
+
+                // Update current node and counter
+                current = current.getNext();
+                ++i;
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println(e.getMessage());
+            return false;
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+
+        return true;
+    }
+
+    public static boolean verifyBounds(List list, int x, int y) {
+        // First line cannot be less than 0
+        // Last line cannot be more than list length
+        // First line must be less than or equal last line
+        return (x > 0 && y <= list.getCount() && x <= y);
+    }
+
+    public static boolean copySelectedText(List list, List copy, int x, int y) {
+
+        // Start at head
+        Node current = list.getHead();
+        int i = 1;
+
+        // Traverse the list, from x to y, copying its content
+        try {
+            while (i < x) {
+                // Update current node and counter
+                current = current.getNext();
+                ++i;
+            }
+            while (i <= y) {
+                copy.append(current.getData());
+                // Update current node and counter
+                current = current.getNext();
+                ++i;
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println(e.getMessage());
             return false;
         }
+        return true;
     }
 
-    public static boolean writeFile(List list, String fileName) {
-        try (BufferedWriter fileScan = new BufferedWriter(new FileWriter(fileName))) {
-            Node temp = list.getHead();
+    public static void showCommands() {
 
-            do {
-                fileScan.write(temp.getData());
-                fileScan.newLine();
-                temp = temp.getNext();
-            } while (temp != list.getHead());
+        String[] text = {
+                ":e nomeArq.ext",
+                "\tAbrir o arquivo de nome “nomeArq.ext”, ler o seu conteúdo e armazenar cada linha em um Node da lista encadeada circular (simplesmente ou duplamente). Informar mensagem adequada ao usuário do editor ou exibir todo o texto armazenado.",
+                "\n:w nomeArq.ext",
+                "\tSalvar o conteúdo da lista encadeada circular (simplesmente ou duplamente) em arquivo de nome “nomeArq.ext”. A seguir, exibir mensagem coerente ao usuário do editor.",
+                "\n:q!",
+                "\tSair do editor sem salvar as modificações realizadas. Antes de sair, solicitar confirmação e informar mensagem ao usuário do editor.",
+                "\n:v LinIni LinFim",
+                "\tMarcar um texto da lista (para cópia ou corte) da LinIni até LinFim. Deve ser verificado se o intervalo [LinIni, LinFim] é válido. Se não for válido, informar ao usuário do editor. Caso contrário, realizar a operação, exibir o conteúdo do código fonte marcado e mensagem adequada ao usuário.",
+                "\n:y",
+                "\tCopiar o texto marcado para uma lista de Cópia e exibir mensagem adequada ao usuário.",
+                "\n:c",
+                "\tCortar o texto marcado e exibir mensagem adequada ao usuário.",
+                "\n:p LinIniPaste",
+                "\tColar o texto marcado a partir da linha inicial (LinIniPaste). Deve ser verificado se LinIniPaste é válido. Se não for válido, informar ao usuário do editor. Caso contrário, exibir mensagem adequada ao usuário.",
+                "\n:s",
+                "\tExibir na tela o conteúdo do programa fonte completo de 10 em 10 linhas.",
+                "\n:s LinIni LinFim",
+                "\tExibir na tela o conteúdo do programa fonte que consta na lista da linha inicial “LimIni” até a linha final “LinFim” de 10 em 10 linhas. Deve ser exibido o número da linha de código ao lado de cada linha (linhas em branco, caso haja, contam como linhas válidas).",
+                "\n:x Lin",
+                "\tApagar a linha de posição “Lin” da lista e exibir mensagem adequada.",
+                "\n:xG Lin",
+                "\tApagar a partir da linha “Lin” até o final da lista e exibir mensagem adequada.",
+                "\n:XG Lin",
+                "\tApagar da linha “Lin” até o início da lista e exibir mensagem adequada.",
+                "\n:/ elemento",
+                "\tPercorrer a lista, localizar a(s) linha(s) (com a correspondente numeração da linha) na(s) qual(is) o “elemento” encontra-se e exibi-las.",
+                "\n:/ elem elemTroca",
+                "\tPercorrer a lista, localizar o “elem” e realizar a troca por “elemTroca” em todas as linhas do código fonte. Exibir mensagem adequada ao término.",
+                "\n:a posLin",
+                "\tPermitir a edição de uma ou mais novas linhas e inserir na lista depois da posição posLin. O término da entrada é dada por um “:a” em uma linha vazia. Quando a lista está vazia, insere a partir do início da lista. Exibir mensagem adequada ao término.",
+                "\n:i posLin [conteudo da nova linha]",
+                "\tPermitir a inserção da linha “[conteudo da nova linha]” e inserir na lista antes da posição posLin. Quando a lista está vazia, insere no início da lista. Exibir mensagem adequada ao término."
+        };
+        System.out.println("\n---------------------------------------------------------------------------------\n");
 
-            return true;
+        // Print each 4 lines
+        int lines = 4;
+        int current = 0;
+        Scanner scanner = new Scanner(System.in);
 
-            // If there's an error while writing in the file
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
+        for (String s : text) {
+            System.out.println(s);
+            current++;
 
-    public static void quit() {
-        System.out.println("Exiting...");
-    }
+            if (current == lines) {
+                current = 0;
+                System.out.print("\nPress any key to continue or type Q to go back to menu. ");
+                String option = scanner.nextLine().trim().toUpperCase();
 
-    public static void printSelectedText(List list, int startLin, int endLin) {
-
-        // If list is empty
-        if (list.isEmpty()) {
-            System.out.println("List is empty!");
-            // Traverse the list and print its content from line x to line y
-        } else {
-            // Create a pointer that starts at head
-            Node currentPointer = list.getHead();
-
-            // Counter to check the line number
-            int counter = startLin;
-
-            // While the list isn't over
-            do {
-                System.out.println(counter + " |\t" + currentPointer);
-                currentPointer = currentPointer.getNext();
-                ++counter;
+                if (option.equals("Q")) break;
             }
-            while (counter <= endLin);
         }
+        System.out.println("\n---------------------------------------------------------------------------------\n");
     }
 
     public static void showHeader() {
         System.out.println("""
-                ==========================================================================
-                                               VI EDITOR
-                ==========================================================================
-                
-                       Copyright ©2023 João Pedrinho e Sabrina. All rights reserved.
+                =================================================================================
+                                                    VI EDITOR
+                =================================================================================   
                 """);
+    }
+
+    public static boolean quit() {
+
+        System.out.print("Are you sure you want to exit? [Y/N] ");
+        String ans;
+        Scanner s = new Scanner(System.in);
+
+        while (true) {
+            ans = s.nextLine().trim().toUpperCase();
+
+            if (ans.equals("Y")) {
+                System.out.println("\n---------------------------------------------------------------------------------\n");
+                System.out.println("\nEnding Program. . .\nE N D");
+                return true;
+
+            } else if (ans.equals("N")) return false;
+
+            else System.out.print("Invalid option. Type 'Y' to exit program or 'N' to go back to menu: ");
+        }
     }
 }

@@ -1,198 +1,355 @@
+/****************************************************************************************************
+ - Authors:
+ João Pedro Rodrigues Vieira         32281730
+ Sabrina Midori F. T. de Carvalho    42249511
+ - Creation Date:
+ 03.11.2023
+ - Project Description:
+ A simple text editor similar to Linux VI.
+ ****************************************************************************************************/
+
 package viEditor;
 
 public class List {
-	private Node head;
-	private Node tail;
-	private int count;
-	
-	public List() {
-		head = null;
-		tail = null;
-		count = 0;
-	}
 
-	public boolean isEmpty() { return count == 0; }
+    private Node head, tail;
+    private int count;
 
-	public boolean isFull() {
-		Node temp = new Node();
-		return temp == null;
-	}
+    public List() {
+        head = tail = null;
+        count = 0;
+    }
 
-	// Insert in the end of the list
-	public boolean append(String data) {
-		if (isFull()) return false;
+    public Node getHead() { return head; }
 
-		// Create new node to be inserted in the end of the list
-		Node node = new Node(data);
-		
-		// List is empty
-		if (head == null) { 
-			head = node;
-		} else {
-			// Insert new node in the end of the list
-			tail.setNext(node);
-			node.setPrevious(tail);
-		}
+    public Node getTail() { return tail; }
 
-		// The new node is the last of the list
-		tail = node;
+    public int getCount() { return count; }
 
-		// Circular list
-		tail.setNext(head);
-		head.setPrevious(tail);
-		
-		count++;
-		return true;
-	}
+    public boolean isEmpty() { return count == 0; }
 
-	// Insert in the beginning of the list
-	public boolean insert(String data) {
-		if (isFull()) return false;
+    public boolean isFull() {
+        Node temp = new Node();
+        return temp == null;
+    }
 
-		Node node = new Node(data);
+    // Insert in the end of the list
+    public boolean append(String data) {
 
-		if (head == null) {
-			tail = node;
-		} else {
-			node.setNext(head);
-			head.setPrevious(node);
-		}
+        if (isFull()) return false;
 
-		head = node;
-		tail.setNext(head);
-		head.setPrevious(tail);
+        // Create new node to be inserted in the end of the list
+        Node node = new Node(data);
 
-		++count;
-		return true;
-	}
+        // List is empty
+        if (isEmpty()) head = node;
+        else {
+            // Insert new node in the end of the list
+            tail.setNext(node);
+            node.setPrev(tail);
+        }
 
-	// Insert in the middle of the list
-	public boolean insertMid(String data, int line) {
-		if (isFull()) return false;
-		if (line <= 0 || line > count) return false;
+        // The new node is the last node of the list
+        tail = node;
 
-		Node node = new Node(data);
+        // Circular list
+        tail.setNext(head);
+        head.setPrev(tail);
 
-		// New node's next points to previous node's next
-		node.setNext(node.getPrevious());
+        ++count;
+        return true;
+    }
 
-		// Previous node's next points to new node
-		Node currPointer = head;
-		Node prevPointer;
+    // Insert anywhere in the list
+    public boolean paste(List copy, int line) {
 
-		int index = 1;
+        if (isFull() || line < 1 || line > count) return false;
 
-		if (line == 1) {
-			insert(data);
-		} else {
-			while (currPointer.getNext() != head) {
-				prevPointer = currPointer;
-				currPointer = currPointer.getNext();
+        // Start at head; previous is tail since it's a circular list
+        Node current = head, previous = tail;
 
-				if (index == line) {
-					// When currPointer reaches the given line
-					prevPointer.setNext(node);
-					node.setPrevious(prevPointer);
+        // Start a counter at 1 which will be line n. 1
+        int i = 1;
 
-					node.setNext(currPointer);
-					currPointer.setPrevious(node);
-					break;
-				}
+        // Traverse list while counter isn't the given line
+        while (i < line) {
+            previous = current;
+            current = current.getNext();
+            ++i;
+        }
 
-				++index;
-			}
-		}
+        // Previous and current are already at the right nodes
+        // Get copy list head and tail
+        Node copyHead = copy.getHead(), copyTail = copy.getTail();
 
-		++count;
-		return true;
-	}
+        // If line is 1 (first line of the list), head list is copy list head
+        if (line == 1) head = copyHead;
 
-	// remove
-	public boolean removeLine(int line) {
-		if (isEmpty()) return false;
+        // If line is count (last line of the list), tail list is copy list tail
+        if (line == count) tail = copyTail;
 
-		// Initializing a current and previous pointers
-		Node currPointer = head;
-		Node prevPointer = null;
+        // Link previous from list and head from copy
+        previous.setNext(copyHead);
+        copyHead.setPrev(previous);
 
-		int index = 1;
+        // Link current from list and tail from copy
+        copyTail.setNext(current);
+        current.setPrev(copyTail);
 
-		// Iterates through the list until the given line is reached
-		while (index != line) {
-			prevPointer = currPointer;
-			currPointer = currPointer.getNext();
-			++index;
-		}
+        count += copy.getCount();
+        return true;
+    }
 
-		// Storing the node which will be deleted
-		Node removedNode = currPointer;
+    // Add new line to the list after given position
+    public boolean addLineAfter(String data, int pos) {
 
-		// If the given line is the first
-		if (index == 1) {
-			// There will be a new head
-			head = head.getNext();
+        if (isFull()) return false;
 
-			// New head and the current tail will be pointing to each other
-			head.setPrevious(tail);
-			tail.setNext(head);
-		} else if (index == count) {
-			// tail is set to a past node and connects again with the head
-			tail = prevPointer;
+        // If list is empty, insert at list beginning
+        if (isEmpty()) pos = 0;
 
-			tail.setNext(head);
-			head.setPrevious(tail);
-		} else {
-			// the previous pointer will now be pointing to the next of the current node
-			prevPointer.setNext(currPointer.getNext());
+        // Start at head; previous is tail since it's a circular list
+        Node current = head, previous = tail;
 
-			// the next node of the current pointer will be pointing to the previous node
-			currPointer.getNext().setPrevious(prevPointer);
-		}
+        // Start a counter at 1 which will be line n. 1
+        int i = 1;
 
-		// terminating connections of the deleted node
-		removedNode.setPrevious(null);
-		removedNode.setNext(null);
+        // Traverse list while counter isn't the given position
+        while (i <= pos) {
+            previous = current;
+            current = current.getNext();
+            ++i;
+        }
 
-		--count;
-		return true;
-	}
+        // Previous and current are already at the right nodes
+        // New node with given data
+        Node node = new Node(data);
 
-	// search
-	public Node searchLine(int line) {
-		if (isEmpty()) return null;
+        // Link previous and new node
+        previous.setNext(node);
+        node.setPrev(previous);
 
-		Node node = head;
-		int index = 1;
+        // Link new node and current node
+        node.setNext(current);
+        current.setPrev(node);
 
-		while (index != line && index <= count) {
-			node = node.getNext();
-			++index;
-		}
+        // If pos is 0 (first line of the list), update head
+        if (pos == 0) head = node;
 
-		if (index > count) return null;
-		return node;
-	}
+        // If pos is count + 1 (last line of the list), update tail
+        if (pos == count + 1) tail = node;
 
-	public void print(int startLine, int endLine) {
-		if (isEmpty()) {
-			System.out.println("List is empty!");
-		} else {
-			// Traverse the list and print its content from startLine to line represented by endLine
+        ++count;
+        return true;
+    }
 
-			// Create a pointer that starts at head
-			Node currentPointer = searchLine(startLine);
+    // Add new line to the list before given position
+    public boolean addLineBefore(String data, int pos) {
 
-			// While the list isn't over
-			for (int i = startLine; i < startLine + 10; i++) {
-				if (i > endLine || i > len()) break;
+        if (isFull()) return false;
 
-				System.out.printf("%3d|\t%s\n", i, currentPointer);
-				currentPointer = currentPointer.getNext();
-			}
-		}
-	}
+        // If list is empty, insert at list beginning
+        if (isEmpty()) pos = 1;
+
+        // Start at head; previous is tail since it's a circular list
+        Node current = head, previous = tail;
+
+        // Start a counter at 1 which will be line n. 1
+        int i = 1;
+
+        // Traverse list while counter isn't the given position
+        while (i < pos) {
+            previous = current;
+            current = current.getNext();
+            ++i;
+        }
+
+        // Previous and current are already at the right nodes
+        // New node with given data
+        Node node = new Node(data);
+
+        // Link previous and new node
+        previous.setNext(node);
+        node.setPrev(previous);
+
+        // Link new node and current node
+        node.setNext(current);
+        current.setPrev(node);
+
+        // If pos is 0 (first line of the list), update head
+        if (pos == 1) head = node;
+
+        // If pos is count (last line of the list), update tail
+        if (pos == count) tail = node;
+
+        ++count;
+        return true;
+    }
+
+    public void print(int start, int end) {
+
+        // Start at head
+        Node current = head;
+        int i = 1;
+
+        div();
+
+        // Traverse the list printing its content
+        while (i < start) {
+            current = current.getNext();
+            ++i;
+        }
+        while (i <= end) {
+            System.out.printf("%3d |    %s%n", i, current.getData());
+
+            // Update current node and counter
+            current = current.getNext();
+            ++i;
+        }
+
+        div();
+    }
+
+    public void printEvery10Lines(int startLine, int endLine) {
+
+        if (isEmpty()) System.out.println("List is empty.");
+        else {
+            // Traverse the list and print its content from startLine to line represented by endLine
+
+            // Create a pointer that starts at head
+            Node current = searchLine(startLine);
+
+            // While the list is not over
+            for (int i = startLine; i < startLine + 10; i++) {
+                if (i > endLine || i > count) break;
+
+                System.out.printf("%3d |    %s%n", i, current.getData());
+                current = current.getNext();
+            }
+        }
+    }
+
+    // search
+    public Node searchLine(int line) {
+        if (isEmpty()) return null;
+
+        Node current = head;
+        int i = 1;
+
+        while (i != line && i <= count) {
+            current = current.getNext();
+            ++i;
+        }
+
+        if (i > count) return null;
+        return current;
+    }
+
+    // remove line
+    public boolean removeLine(int line) {
+
+        if (isEmpty()) return false;
+
+        // Initializing a current and previous pointers
+        Node current = head, previous = null;
+
+        int i = 1;
+
+        // Iterates through the list until the given line is reached
+        while (i != line) {
+            previous = current;
+            current = current.getNext();
+            ++i;
+        }
+
+        // Storing the node which will be deleted
+        Node removedNode = current;
+
+        // If the given line is the first
+        if (i == 1) {
+            // There will be a new head
+            head = head.getNext();
+
+            // New head and the current tail will be pointing to each other
+            head.setPrev(tail);
+            tail.setNext(head);
+
+        } else if (i == count) {
+            // tail is set to a past node and connects again with the head
+            tail = previous;
+
+            tail.setNext(head);
+            head.setPrev(tail);
+
+        } else {
+            // the previous pointer will now be pointing to the next of the current node
+            previous.setNext(current.getNext());
+
+            // the next node of the current pointer will be pointing to the previous node
+            current.getNext().setPrev(previous);
+        }
+
+        // terminating connections of the deleted node
+        removedNode.setPrev(null);
+        removedNode.setNext(null);
+
+        --count;
+        return true;
+    }
+
+    // Remove interval node
+    public boolean removeLines(int start, int end) {
+
+        if (isEmpty()) return false;
+
+        // Start at head; previous is tail since it's a circular list
+        Node current = head, previous = tail;
+
+        // Start a counter at 1 which will be line n. 1
+        int i = 1;
+
+        // Traverse list while counter isn't the start line
+        while (i < start) {
+            previous = current;
+            current = current.getNext();
+            ++i;
+        }
+
+        // Previous is already at the right node
+
+        // If current node (first node to be removed) is the head
+        boolean isHeadFirst = current == head;
+
+        // Traverse list while counter isn't the end line
+        while (i < end) {
+            current = current.getNext();
+            ++i;
+        }
+
+        // Link previous and next nodes, removing current node
+        previous.setNext(current.getNext());
+        current.getNext().setPrev(previous);
+
+        // If first node to be removed is the head, update head and link head and tail
+        if (isHeadFirst) {
+            head = current.getNext();
+            head.setPrev(tail);
+            tail.setNext(head);
+        }
+
+        // If last node to be removed is the tail, update tail and link tail and head
+        if (current == tail) {
+            tail = previous;
+            tail.setNext(head);
+            head.setPrev(tail);
+        }
+
+        count -= end - start + 1;
+        return true;
+    }
 
     public boolean searchElement(String element) {
+
         if (isEmpty()) return false;
 
         Node node = head;
@@ -201,7 +358,7 @@ public class List {
 
         while (node.getNext() != head) {
             if (node.getData().contains(element)) {
-                System.out.printf("%3d|\t%s\n", line, node);
+                System.out.printf("%3d |    %s%n", line, node.getData());
                 found = true;
             }
             node = node.getNext();
@@ -211,50 +368,30 @@ public class List {
         return found;
     }
 
-	public boolean replaceElement(String element, String replacement) {
-		if (isEmpty()) return false;
+    public boolean replaceElement(String element, String replacement) {
 
-		Node node = head;
-		int line = 1;
-		boolean replaced = false;
+        if (isEmpty()) return false;
 
-		while (node.getNext() != head) {
-			if (node.getData().contains(element)) {
-				node.setData(node.getData().replace(element, replacement));
-				System.out.printf("%3d|\t%s\n", line, node);
-				System.out.println("\n");
+        Node node = head;
+        int line = 1;
+        boolean replaced = false;
 
-				replaced = true;
-			}
-			node = node.getNext();
-			++line;
-		}
+        while (node.getNext() != head) {
+            if (node.getData().contains(element)) {
+                node.setData(node.getData().replace(element, replacement));
+                System.out.printf("%3d |    %s%n", line, node.getData());
 
-		return replaced;
-	}
+                replaced = true;
+            }
+            node = node.getNext();
+            ++line;
+        }
 
-	public Node getHead() { return head; }
+        return replaced;
+    }
 
-	public Node getTail() { return tail; }
+    public void div() {
+        System.out.println("\n---------------------------------------------------------------------------------\n");
+    }
 
-	public int len() { return count; }
-
-	@Override
-	public String toString() {
-		if (head == null) {
-			return null;
-		}
-		
-		Node aux = head;
-		
-		StringBuilder sb = new StringBuilder();
-		sb.append("count: " + count + '\n');
-
-		do {
-			sb.append(aux).append(" ->\n");
-			aux = aux.getNext();
-		} while (aux != head);
-		
-		return sb.toString();
-	}
 }
