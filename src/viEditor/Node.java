@@ -33,17 +33,5 @@ public class Node {
     public Node getPrev() { return prev; }
     public void setPrev(Node prev) { this.prev = prev; }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("data: ")
-          .append(data)
-          .append(", next(id): ")
-          .append(next == null? "null" : next.getData())
-          .append(", previous(id): ")
-          .append(prev == null? "null" : prev.getData());
-
-        return sb.toString();
-    }
 }
 

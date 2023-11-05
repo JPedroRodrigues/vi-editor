@@ -148,55 +148,39 @@ public class List {
 
         if (isFull()) return false;
 
+        // If list is empty, insert at list beginning
+        if (isEmpty()) pos = 1;
+
+        // Start at head; previous is tail since it's a circular list
+        Node current = head, previous = tail;
+
+        // Start a counter at 1 which will be line n. 1
+        int i = 1;
+
+        // Traverse list while counter isn't the given position
+        while (i < pos) {
+            previous = current;
+            current = current.getNext();
+            ++i;
+        }
+
+        // Previous and current are already at the right nodes
         // New node with given data
         Node node = new Node(data);
 
-        // If list is empty, insert at list beginning
-        if (isEmpty()) {
-            head = node;
-            tail = node;
-            head.setPrev(tail);
-            tail.setNext(head);
-        } else if (pos == 1) {
-            node.setNext(head);
-            head.setPrev(node);
+        // Link previous and new node
+        previous.setNext(node);
+        node.setPrev(previous);
 
-            head = node;
+        // Link new node and current node
+        node.setNext(current);
+        current.setPrev(node);
 
-            head.setPrev(tail);
-            tail.setNext(head);
-        } else if (pos == count + 1) {
-            tail.setNext(node);
-            node.setPrev(tail);
+        // If pos is 1 (first line of the list), update head
+        if (pos == 1) head = node;
 
-            tail = node;
-
-            tail.setNext(head);
-            head.setPrev(tail);
-        } else {
-            // Start at head; previous is tail since it's a circular list
-            Node current = head, previous = tail;
-
-            // Start a counter at 1 which will be line n. 1
-            int i = 1;
-
-            // Traverse list while counter isn't the given position
-            while (i < pos) {
-                previous = current;
-                current = current.getNext();
-                ++i;
-            }
-
-            // Previous and current are already at the right nodes
-
-            // Link previous and new node
-            previous.setNext(node);
-            node.setPrev(previous);
-
-            // Link new node and current node
-            node.setNext(current);
-            current.setPrev(node);
-        }
+        // If pos is count + 1 (last line of the list), update tail
+        if (pos == count + 1) tail = node;
 
         ++count;
         return true;

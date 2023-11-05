@@ -357,7 +357,7 @@ public class Main {
                     } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
 
                     // Remove from given line until the end of the list
-                    if (list.removeLines(line, list.getCount() + 1)) System.out.println("Removal done successfully.");
+                    if (list.removeLines(line, list.getCount())) System.out.println("Removal done successfully.");
                     else System.out.println("Error while removing from the list.");
                 }
 
