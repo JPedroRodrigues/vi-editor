@@ -298,7 +298,7 @@ public class List {
     }
 
     // Remove interval node
-    public boolean removeLines(int start, int end) {
+    public boolean removeLines(int start, int end, String mode) {
 
         if (isEmpty()) return false;
 
@@ -344,7 +344,9 @@ public class List {
             head.setPrev(tail);
         }
 
-        count -= end - start + 1;
+        if (mode.equals("reverse")) count -= end - start;
+        else count -= end - start + 1;
+
         return true;
     }
 

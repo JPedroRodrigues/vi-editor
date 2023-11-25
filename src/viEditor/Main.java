@@ -22,7 +22,7 @@ public class Main {
         List list = null, copy = null;
         String[] op;
         boolean exit = false, selectedText = false;
-        int first = 0, last = 0;
+        int firstLine = 0, lastLine = 0;
 
         showHeader();
 
@@ -133,11 +133,11 @@ public class Main {
                             System.out.println("The provided limit is valid.");
                             selectedText = true;
 
-                            first = x;
-                            last = y;
+                            firstLine = x;
+                            lastLine = y;
 
                             // If they are, call method to select and print given interval of the list
-                            list.print(first, last);
+                            list.print(firstLine, lastLine);
 
                         // If first line and last line are not within the bounds of the list
                         } else System.out.printf("The provided limit is not valid. Values must be between 1-%d.\n", list.getCount());
@@ -161,7 +161,7 @@ public class Main {
                         copy = new List();
 
                         // Call function to copy selected content to new list
-                        if (copySelectedText(list, copy, first, last)) {
+                        if (copySelectedText(list, copy, firstLine, lastLine)) {
                             // If content is successfully copied, print a message
                             System.out.println("Text successfully copied to new list.");
 
@@ -189,7 +189,7 @@ public class Main {
                     // If the interval was previously selected
                     if (selectedText) {
                         // Call function to remove selected content of the list
-                        if (list.removeLines(first, last)) {
+                        if (list.removeLines(firstLine, lastLine, "standard")) {
                             // If content is successfully removed from the original list, print a message
                             System.out.println("Text successfully cut.");
 
@@ -357,7 +357,7 @@ public class Main {
                     } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
 
                     // Remove from given line until the end of the list
-                    if (list.removeLines(line, list.getCount())) System.out.println("Removal done successfully.");
+                    if (list.removeLines(line, list.getCount(), "standard")) System.out.println("Removal done successfully.");
                     else System.out.println("Error while removing from the list.");
                 }
 
@@ -392,7 +392,7 @@ public class Main {
                     } catch (NumberFormatException e) { System.out.println("Invalid input. Type :help to se all available commands."); }
 
                     // Remove from beginning of the list until given line
-                    if (list.removeLines(0, line)) System.out.println("Removal done successfully.");
+                    if (list.removeLines(0, line, "reverse")) System.out.println("Removal done successfully.");
                     else System.out.println("Error while removing from the list.");
                 }
 
@@ -656,38 +656,38 @@ public class Main {
     public static void showCommands() {
 
         String[] text = {
-                ":e nomeArq.ext",
-                "\tAbrir o arquivo de nome “nomeArq.ext”, ler o seu conteúdo e armazenar cada linha em um Node da lista encadeada circular (simplesmente ou duplamente). Informar mensagem adequada ao usuário do editor ou exibir todo o texto armazenado.",
-                "\n:w nomeArq.ext",
-                "\tSalvar o conteúdo da lista encadeada circular (simplesmente ou duplamente) em arquivo de nome “nomeArq.ext”. A seguir, exibir mensagem coerente ao usuário do editor.",
+                ":e filename.ext",
+                "\tOpen the file named \"filename.ext,\" read its content, and store each line in a node of a circular (singly or doubly) linked list. Provide an appropriate message to the editor's user or display the entire stored text.",
+                "\n:w filename.ext",
+                "\tSave the content of the circular (singly or doubly) linked list to a file named \"filename.ext.\" Then, display a coherent message to the editor's user.",
                 "\n:q!",
-                "\tSair do editor sem salvar as modificações realizadas. Antes de sair, solicitar confirmação e informar mensagem ao usuário do editor.",
-                "\n:v LinIni LinFim",
-                "\tMarcar um texto da lista (para cópia ou corte) da LinIni até LinFim. Deve ser verificado se o intervalo [LinIni, LinFim] é válido. Se não for válido, informar ao usuário do editor. Caso contrário, realizar a operação, exibir o conteúdo do código fonte marcado e mensagem adequada ao usuário.",
+                "\tExit the editor without saving the modifications made. Before exiting, request confirmation and inform the editor's user with a message.",
+                "\n:v LineStart LineEnd",
+                "\tMark a section of text in the list (for copying or cutting) from LineStart to LineEnd. It should be checked whether the range [LineStart, LineEnd] is valid. If it's not valid, inform the editor's user. Otherwise, perform the operation, display the marked source code content, and provide an appropriate message to the user.",
                 "\n:y",
-                "\tCopiar o texto marcado para uma lista de Cópia e exibir mensagem adequada ao usuário.",
+                "\tCopy the marked text to a Copy list and display a suitable message to the user.",
                 "\n:c",
-                "\tCortar o texto marcado e exibir mensagem adequada ao usuário.",
-                "\n:p LinIniPaste",
-                "\tColar o texto marcado a partir da linha inicial (LinIniPaste). Deve ser verificado se LinIniPaste é válido. Se não for válido, informar ao usuário do editor. Caso contrário, exibir mensagem adequada ao usuário.",
+                "\tCut the marked text and display a suitable message to the user.",
+                "\n:p LineStartPaste",
+                "\tPaste the marked text starting from the initial line (LineStartPaste). It should be checked whether LineStartPaste is valid. If it's not valid, inform the editor's user. Otherwise, display an appropriate message to the user.",
                 "\n:s",
-                "\tExibir na tela o conteúdo do programa fonte completo de 10 em 10 linhas.",
-                "\n:s LinIni LinFim",
-                "\tExibir na tela o conteúdo do programa fonte que consta na lista da linha inicial “LimIni” até a linha final “LinFim” de 10 em 10 linhas. Deve ser exibido o número da linha de código ao lado de cada linha (linhas em branco, caso haja, contam como linhas válidas).",
-                "\n:x Lin",
-                "\tApagar a linha de posição “Lin” da lista e exibir mensagem adequada.",
-                "\n:xG Lin",
-                "\tApagar a partir da linha “Lin” até o final da lista e exibir mensagem adequada.",
-                "\n:XG Lin",
-                "\tApagar da linha “Lin” até o início da lista e exibir mensagem adequada.",
-                "\n:/ elemento",
-                "\tPercorrer a lista, localizar a(s) linha(s) (com a correspondente numeração da linha) na(s) qual(is) o “elemento” encontra-se e exibi-las.",
-                "\n:/ elem elemTroca",
-                "\tPercorrer a lista, localizar o “elem” e realizar a troca por “elemTroca” em todas as linhas do código fonte. Exibir mensagem adequada ao término.",
-                "\n:a posLin",
-                "\tPermitir a edição de uma ou mais novas linhas e inserir na lista depois da posição posLin. O término da entrada é dada por um “:a” em uma linha vazia. Quando a lista está vazia, insere a partir do início da lista. Exibir mensagem adequada ao término.",
-                "\n:i posLin [conteudo da nova linha]",
-                "\tPermitir a inserção da linha “[conteudo da nova linha]” e inserir na lista antes da posição posLin. Quando a lista está vazia, insere no início da lista. Exibir mensagem adequada ao término."
+                "\tDisplay the complete source code content on the screen, 10 lines at a time.",
+                "\n:s LineStart LineEnd",
+                "\tDisplay the source code content from the list, ranging from LineStart to LineEnd, 10 lines at a time. The line number of each line of code should be shown alongside it (blank lines, if any, count as valid lines).",
+                "\n:x Line",
+                "\tDelete the line at position \"Line\" from the list and display an appropriate message.",
+                "\n:xG Line",
+                "\tDelete from the line \"Line\" to the end of the list and display an appropriate message.",
+                "\n:XG Line",
+                "\tDelete from the line \"Line\" to the beginning of the list and display an appropriate message.",
+                "\n:/ element",
+                "\tTraverse the list, locate the line(s) (with the corresponding line number) where the \"element\" is found, and display them.",
+                "\n:/ elem elemToReplace",
+                "\tTraverse the list, locate \"elem,\" and replace it with \"elemToReplace\" in all lines of the source code. Display an appropriate message upon completion.",
+                "\n:a LinePosition",
+                "\tAllow the editing of one or more new lines and insert them into the list after position LinePosition. The input is terminated by a \":a\" on an empty line. When the list is empty, insert from the beginning of the list. Display an appropriate message upon completion.",
+                "\n:i LinePosition [new line content]",
+                "\tAllow the insertion of the line \"[new line content]\" and insert it into the list before position LinePosition. When the list is empty, insert at the beginning of the list. Display an appropriate message upon completion."
         };
         System.out.println("\n---------------------------------------------------------------------------------\n");
 
