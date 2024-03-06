@@ -1,2 +1,2 @@
-# vi-editor
- VI text editor project for data structures subject
+# Vi Editor made using Java
+ VI text editor project for data structures subject.
